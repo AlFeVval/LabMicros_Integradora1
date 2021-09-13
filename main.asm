@@ -66,11 +66,22 @@
 ; CONFIG7H
   CONFIG  EBTRB = OFF           ; Boot Block Table Read Protection bit (Boot block (000000-0007FFh) is not protected from table reads executed in other blocks)
 
-;****************Variables Definition*********************************
-TEMP		EQU	0x50			;
+;****************Variables Definition*********************************			;
+
+COCIENT		EQU	0x90
+RESID		EQU	0xA0
+RESULTADO	EQU	0xB0
+	
+MIN		EQU	0x10
+DECS		EQU	0x20
+UNIS		EQU	0x30
+
+TEMP		EQU	0x50
 TM1		EQU	0x60			;	
 TM2		EQU	0x70			;	
 TM3		EQU	0x80			;
+CONSTANT SDN = 0x3C
+CONSTANT DDN = 0x0A
 ;****************Main code*****************************
     #DEFINE		pausa	    PORTB,7
     #DEFINE		continuar   PORTB,6
@@ -96,148 +107,69 @@ MAIN:
 			CALL 	INITIALIZE
 
 BASE:
-			CALL	CONTINUE_VERIFICATION
-			BTFSC	c_flag
 			CALL	COUNTDOWN
-			;CALL	CONTINUE_VERIFICATION
-			;BTFSS	p_flag
-			;CALL	PAUSE
-			;CALL	CONTINUE_VERIFICATION
-			;BTFSC	continuar
-			;CALL	CONTINUE
-			;BTFSC	reinicio
-			;CALL	RESTART
 			GOTO 	BASE	    ;infinite loop
-			
-
-CONTINUE_VERIFICATION:
-			BTFSC	continuar		    ;¿Continuar no está presionado?    
-			GOTO	CONTINUE_VERIFICATION	    ;Si no lo está vuelve a preguntat
-			CALL	DELAY_10mS		    ;Si lo está, has una pausa
-			BTFSS	continuar		    ;¿Continuar está presiondado?
-			GOTO	CONTINUE_VERIFICATION	    ;No, vuelve a preguntar.
-			MOVLW	b'01000000'		    ;Cargamos este numero binario para hacer de soporte para el toogle
-			XORWF	PORTC,1
-			RETURNx
-			
-			
 COUNTDOWN:
-			MOVF	TEMP,W			;
-			BZ	TURN_NINE 		;
+			MOVF	TEMP,F			;
+			BZ	VALUE
 			DECF	TEMP			;
-			CALL	DECODE			;
-			CALL	DELAY_1S
-			BTFSC	c_flag
-			BTFSS	continuar
-			CALL	CONTINUE_VERIFICATION
-			GOTO	COUNTDOWN
-			RETURN				;
+			MOVF	TEMP,W
+			MOVWF	RESULTADO
+			CALL	DIVIDE_60
+			CALL	SET_RES_MIN
+			CALL	DIVIDE_10
+			RETURN				;   
 
-DELAY_10mS:
-    			MOVLW	d'2'			;
-			MOVWF	TM1			;
-			MOVLW	D'91'			;
-		T301:	MOVWF	TM2			;
-		T201:	MOVWF	TM3			;
-		T101:	DECFSZ	TM3			;
-			GOTO	T101		        ;
-			DECFSZ	TM2			;
-			GOTO	T201			;
-			DECFSZ	TM1			;
-			GOTO	T301			;
-			RETURN				;
-			
-DELAY_1S:		
-    			MOVLW	d'6'			;
-			MOVWF	TM1			;
-			MOVLW	D'236'			;
-		T3:	MOVWF	TM2			;
-		T2:	MOVWF	TM3			;
-		T1:	DECFSZ	TM3			;
-			GOTO	T1		        ;
-			DECFSZ	TM2			;
-			GOTO	T2			;
-			DECFSZ	TM1			;
-			GOTO	T3			;		
-			RETURN	
-			
-DECODE:
-			MOVLW	0x00			;
-			SUBWF	TEMP,0			;
-			BZ	D0			;
-			MOVLW	0x01			;
-			SUBWF	TEMP,0			;
-			BZ	D1			;
-			MOVLW	0x02			;
-			SUBWF	TEMP,0		;
-			BZ	D2			;
-			MOVLW	0x03			;
-			SUBWF	TEMP,0			;
-			BZ	D3			;
-			MOVLW	0x04			;
-			SUBWF	TEMP,0			;
-			BZ	D4			;
-			MOVLW	0x05			;
-			SUBWF	TEMP,0			;
-			BZ	D5			;
-			MOVLW	0x06			;
-			SUBWF	TEMP,0			;
-			BZ	D6			;
-			MOVLW	0x07			;
-			SUBWF	TEMP,0			;
-			BZ	D7			;
-			MOVLW	0x08			;
-			SUBWF	TEMP,0			;
-			BZ	D8			;
-			MOVLW	0x09			;
-			SUBWF	TEMP,0			;
-			BZ	D9			;	
-			RETURN;
+VALUE:
+			MOVLW	d'181'			;
+			MOVWF	TEMP			;
+			GOTO	COUNTDOWN		;			
 
-D0:
-			MOVLW	b'01111110'		;//0
-			MOVWF	PORTD			;
-			RETURN;
-D1:
-			MOVLW	b'00110000'		;//1
-			MOVWF	PORTD			;
-			RETURN			;
-D2:
-			MOVLW	b'01101101'		;//2
-			MOVWF	PORTD			;
-			RETURN		;
-D3:
-			MOVLW	b'01111001'		;//3
-			MOVWF	PORTD			;
-			RETURN			;
-D4:
-			MOVLW	b'00110011'		;//4
-			MOVWF	PORTD			;
-			RETURN			;
-D5:
-			MOVLW	b'01011011'		;//5
-			MOVWF	PORTD			;
-			RETURN;
-D6:
-			MOVLW	b'01011111'		;//6
-			MOVWF	PORTD			;
-			RETURN			;
-D7:
-			MOVLW	b'01110000'		;//7
-			MOVWF	PORTD			;
-			RETURN			;
-D8:
-			MOVLW	b'01111111'		;//8
-			MOVWF	PORTD			;
-			RETURN;
-D9:
-			MOVLW	b'01111011'		;//9
-			MOVWF	PORTD			;
+DIVIDE_60:
+			MOVLW	SDN
+			SUBWF	RESULTADO
+			MOVF	RESULTADO,F
+			BTFSC	STATUS,C
+			GOTO	INC_COCIENTE_MIN
+			GOTO	RESIDUO_MIN
 			RETURN
 
-TURN_NINE:
-			MOVLW	d'10'			;
-			MOVWF	TEMP			;
-			GOTO	COUNTDOWN			;
+INC_COCIENTE_MIN:
+			INCF	COCIENT
+			MOVF	COCIENT,W
+			MOVWF	MIN
+			GOTO	DIVIDE_60
+
+RESIDUO_MIN:
+			MOVLW	SDN
+			ADDWF	RESULTADO,W
+			MOVWF	RESID
+			RETURN
+SET_RES_MIN:
+			MOVF	RESID,W
+			MOVWF	RESULTADO
+			CLRF	COCIENT
+			RETURN
+    
+DIVIDE_10:
+			MOVLW	DDN
+			subwf	RESULTADO
+			MOVF	RESULTADO,F
+			BTFSC	STATUS,C
+			GOTO	INC_COCIENTE_DS
+			GOTO	RESIDUO_DS
 			
+INC_COCIENTE_DS:
+			INCF	COCIENT
+			MOVF	COCIENT,W
+			MOVWF	DECS
+			GOTO	DIVIDE_10
+			
+RESIDUO_DS:
+			MOVLW	DDN
+			ADDWF	RESULTADO,W
+			MOVWF	UNIS
+			RETURN
+			
+	
 			END
