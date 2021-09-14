@@ -1,3 +1,4 @@
+  
 ; PIC18F4550 Configuration Bit Settings
 
 ; Assembly source line config statements
@@ -67,7 +68,7 @@
   CONFIG  EBTRB = OFF           ; Boot Block Table Read Protection bit (Boot block (000000-0007FFh) is not protected from table reads executed in other blocks)
 
 ;****************Variables Definition*********************************			;
-
+SUPPORT		EQU	0x40
 COCIENT		EQU	0x90
 RESID		EQU	0xA0
 RESULTADO	EQU	0xB0
@@ -96,9 +97,8 @@ CONSTANT D_10 = 0x0A
     #DEFINE		g_ds	    LATC,6
     
     #DEFINE		a_us	    LATD,7
+    #DEFINE		FOSC	    4000000
    
-    
-    
 			ORG     0x000             	;reset vector
   			GOTO    MAIN              	;go to the main routine
 INITIALIZE:
@@ -110,15 +110,30 @@ INITIALIZE:
 			CLRF	TRISA
 			CLRF	TRISD			;Puerto D como salidas
 			RETURN				;end of initialization subroutine
-
+			
 MAIN:
 			CALL 	INITIALIZE
 
 BASE:
+			BTFSS	continuar
+			CALL	CONTINUE
+			BTFSS	reinicio
+			CALL	CHANGE_TEMP_VALUE
+			GOTO 	BASE	    ;infinite loop
+CHANGE_TEMP_VALUE:
+			CALL	COUNTDOWN
+			CALL	DELAY_10mS
+			CALL	SHOW
+			BTFSS	pausa
+			RETURN
+			GOTO	CHANGE_TEMP_VALUE
+CONTINUE:
 			CALL	COUNTDOWN
 			CALL	DELAY_1S
 			CALL	SHOW
-			GOTO 	BASE	    ;infinite loop
+			BTFSS	pausa
+			RETURN
+			GOTO	CONTINUE
 			
 COUNTDOWN:
 			MOVF	TEMP,F			;
@@ -456,7 +471,7 @@ D9_US:
 DELAY_1S:		
     			MOVLW	d'6'			;
 			MOVWF	TM1			;
-			MOVLW	D'75'			;
+			MOVLW	D'236'			;
 		T3:	MOVWF	TM2			;
 		T2:	MOVWF	TM3			;
 		T1:	DECFSZ	TM3			;
@@ -467,5 +482,18 @@ DELAY_1S:
 			GOTO	T3			;		
 			RETURN
 
+DELAY_10mS:
+    			MOVLW	d'2'			;
+			MOVWF	TM1			;
+			MOVLW	D'41'			;
+		T301:	MOVWF	TM2			;
+		T201:	MOVWF	TM3			;
+		T101:	DECFSZ	TM3			;
+			GOTO	T101		        ;
+			DECFSZ	TM2			;
+			GOTO	T201			;
+			DECFSZ	TM1			;
+			GOTO	T301			;
+			RETURN			
 			
 			END
